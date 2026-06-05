@@ -1,0 +1,48 @@
+[package]
+name = "prism-notify"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+license = "GPL-3.0-or-later"
+description = "Notification daemon for the prism compositor — damascene-rendered, layer-shell native"
+authors = ["Christian Balcom"]
+
+[dependencies]
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# wayland client stack — same harness as prism-bar: SCTK covers
+# registry/output/seat/layer-shell boilerplate, calloop drives the loop.
+smithay-client-toolkit = { version = "0.20", default-features = false, features = ["calloop"] }
+wayland-client = "0.31"
+# The system libwayland backend is required: wgpu's Vulkan WSI takes raw
+# `wl_display`/`wl_surface` pointers, which the pure-Rust backend can't give.
+wayland-backend = { version = "0.3", features = ["client_system"] }
+
+# UI toolkit. Same custom-host path as prism-bar: we own the layer
+# surface and event loop, and drive the wgpu Runner directly.
+damascene-core = { path = "../damascene/damascene.main/crates/damascene-core" }
+damascene-wgpu = { path = "../damascene/damascene.main/crates/damascene-wgpu" }
+
+# GPU surface on the layer surface's wl_surface via raw handles.
+wgpu = "29"
+raw-window-handle = "0.6"
+pollster = "0.4"
+
+# org.freedesktop.Notifications server. Blocking mode: zbus runs its own
+# executor thread internally; method handlers feed the main calloop via
+# a calloop channel, signals are emitted from the main thread through
+# the (thread-safe) connection.
+zbus = "5"
+
+# app_icon / image-path file loading (the image-data hint arrives as raw
+# pixels and needs no decoder).
+png = "0.17"
+
+# KDL config, same stack as prism-bar (knuffel + miette diagnostics).
+knuffel = "3.2.0"
+miette = { version = "5.10.0", features = ["fancy-no-backtrace"] }
+
+# inotify for live config reload.
+rustix = { version = "1", features = ["fs"] }
