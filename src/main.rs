@@ -246,6 +246,13 @@ impl Daemon {
         match event {
             dbus::Event::Notify(n) => self.upsert(n),
             dbus::Event::Close(id) => self.close(id, CloseReason::CloseCall),
+            dbus::Event::NameLost => {
+                // Another daemon owns notifications now; exit so a
+                // supervisor (or the user) notices, rather than
+                // lingering with a dead bus name.
+                tracing::error!("bus name lost; exiting");
+                self.exit = true;
+            }
         }
     }
 

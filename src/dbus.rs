@@ -29,6 +29,9 @@ pub enum Event {
     Notify(Notification),
     /// `CloseNotification` call; close with [`CloseReason::CloseCall`].
     Close(u32),
+    /// The bus name was handed to another connection; the daemon must
+    /// exit rather than keep running blind.
+    NameLost,
 }
 
 struct Interface {
@@ -126,20 +129,57 @@ pub struct Dbus {
 impl Dbus {
     /// Connect to the session bus, claim the well-known name and serve
     /// the interface. Fails if another notification daemon holds the
-    /// name.
+    /// name; [`Event::NameLost`] reports losing it later.
     pub fn serve(sender: Sender<Event>) -> Result<Self> {
+        use zbus::fdo::{RequestNameFlags, RequestNameReply};
+
         let iface = Interface {
-            sender,
+            sender: sender.clone(),
             next_id: AtomicU32::new(1),
         };
         let conn = zbus::blocking::connection::Builder::session()
             .context("session bus")?
-            .name(NAME)
-            .context("claim org.freedesktop.Notifications (is another daemon running?)")?
             .serve_at(PATH, iface)
             .context("serve interface")?
             .build()
             .context("connect to session bus")?;
+
+        // Claim the name explicitly rather than via `Builder::name()`:
+        // the builder requests with empty flags, so a second daemon
+        // instance queues (or, observed with dbus-broker + an
+        // activatable mako service, even displaces the running owner)
+        // without any error. DoNotQueue + the PrimaryOwner check turn
+        // that into a loud startup failure.
+        let reply = conn
+            .request_name_with_flags(NAME, RequestNameFlags::DoNotQueue.into())
+            .with_context(|| format!("request {NAME}"))?;
+        if reply != RequestNameReply::PrimaryOwner {
+            anyhow::bail!(
+                "{NAME} already owned ({reply:?}); is another notification daemon running?"
+            );
+        }
+
+        // Belt and braces for the displacement case: if the broker
+        // hands the name to someone else anyway, tell the main loop to
+        // exit instead of serving nothing.
+        let proxy = zbus::blocking::fdo::DBusProxy::new(&conn).context("DBus proxy")?;
+        let mut name_lost = proxy
+            .receive_name_lost()
+            .context("subscribe to NameLost")?;
+        std::thread::Builder::new()
+            .name("name-lost-watch".into())
+            .spawn(move || {
+                for signal in &mut name_lost {
+                    let Ok(args) = signal.args() else { continue };
+                    if args.name.as_str() == NAME {
+                        tracing::error!("lost {NAME} to another connection");
+                        let _ = sender.send(Event::NameLost);
+                        return;
+                    }
+                }
+            })
+            .context("spawn NameLost watcher")?;
+
         tracing::info!("serving {NAME}");
         Ok(Self { conn })
     }
