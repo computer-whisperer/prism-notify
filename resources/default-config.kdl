@@ -1,0 +1,50 @@
+// prism-notify configuration.
+//
+// Lives at ~/.config/prism-notify/config.kdl (or
+// $XDG_CONFIG_HOME/prism-notify/), overridable with
+// $PRISM_NOTIFY_CONFIG. Every setting below is optional; a missing
+// file or omitted node means the built-in default. A file that fails
+// to parse is an error — prism-notify will not silently fall back to
+// defaults over a typo.
+//
+// Edits apply live: saving this file reconfigures the running daemon,
+// rebuilding the visible stack in place. A save that fails to parse
+// logs the error and keeps the current config.
+
+// Output (connector name) the stack appears on. Omit to let the
+// compositor pick — normally the focused output. If the named output
+// is absent, the daemon falls back to compositor choice and migrates
+// the stack when the output appears.
+//
+// output "DP-1"
+
+// Screen corner the stack grows from: "top-right", "top-left",
+// "bottom-right" or "bottom-left". The newest card sits nearest the
+// corner, so bottom corners grow the column upward.
+corner "top-right"
+
+// Card width in logical pixels. The surface is wider by a transparent
+// 16px gutter per side that keeps the card drop shadows unclipped.
+width 360
+
+// Margin between the stack and the screen edges, logical pixels.
+// Other layer-shell exclusive zones (e.g. the bar) are respected on
+// top of this.
+margin 8
+
+// Vertical gap between stacked cards, logical pixels.
+gap 8
+
+// Maximum cards shown at once; anything older collapses into a
+// "+N more" line until the stack drains.
+max-visible 8
+
+// Card fill translucency, 0.0 through 1.0 (1.0 = fully opaque). The
+// header strip composites over the card fill, so it reads slightly
+// more opaque than the body at the same value.
+opacity 0.8
+
+// Auto-expiry for notifications that don't request their own timeout,
+// milliseconds; 0 = never expire. Critical-urgency notifications never
+// auto-expire regardless.
+default-timeout 5000
