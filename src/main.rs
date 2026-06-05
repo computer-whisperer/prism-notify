@@ -278,6 +278,12 @@ impl Daemon {
         self.stack_changed = true;
     }
 
+    /// Surface width: configured card width plus the app's shadow
+    /// gutter on both sides.
+    fn surface_width(&self) -> u32 {
+        self.config.width + 2 * ui::SHADOW_GUTTER
+    }
+
     /// Reconcile the surface with the stack: destroy when empty,
     /// create when needed, resize to the measured content height.
     fn sync_surface(&mut self, qh: &QueueHandle<Self>) {
@@ -292,12 +298,13 @@ impl Daemon {
         }
 
         let height = self.measure_height().max(1);
+        let width = self.surface_width();
         match &mut self.surface {
             None => self.create_surface(qh, height),
             Some(s) => {
                 if s.height != height {
                     s.height = height;
-                    s.layer.set_size(self.config.width, height);
+                    s.layer.set_size(width, height);
                     s.layer.commit();
                     // The swapchain follows on the configure event.
                 }
@@ -310,7 +317,7 @@ impl Daemon {
     /// the stack's height — the layer surface is sized to content.
     fn measure_height(&mut self) -> u32 {
         let theme = self.app.theme();
-        let viewport = Rect::new(0.0, 0.0, self.config.width as f32, 16384.0);
+        let viewport = Rect::new(0.0, 0.0, self.surface_width() as f32, 16384.0);
         let cx = BuildCx::new(&theme).with_viewport(viewport.w, viewport.h);
         let mut tree = self.app.build(&cx);
         damascene_core::layout::layout(&mut tree, &mut self.measure_ui, viewport);
@@ -356,7 +363,7 @@ impl Daemon {
         let m = self.config.margin;
         layer.set_anchor(self.anchor());
         layer.set_margin(m, m, m, m);
-        layer.set_size(self.config.width, height);
+        layer.set_size(self.surface_width(), height);
         layer.set_keyboard_interactivity(KeyboardInteractivity::None);
         layer.commit();
 
@@ -406,7 +413,7 @@ impl Daemon {
             wgpu_surface,
             swapchain: None,
             layer,
-            width: self.config.width,
+            width: self.surface_width(),
             height,
             scale: 1,
             dirty: false,

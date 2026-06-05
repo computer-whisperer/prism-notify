@@ -16,6 +16,13 @@ use crate::notification::{Notification, Urgency};
 /// Key of the stack column, read back by the host's measuring pass.
 pub const STACK_KEY: &str = "stack";
 
+/// Paint gutter around the stack, logical px. `card()` draws its
+/// `SHADOW_MD` drop shadow outside the layout rect; the wl_surface is
+/// sized to the keyed stack (gutter included), so without this the
+/// shadow would hard-clip at the surface edge. The host adds it to the
+/// surface width; the measured stack height already contains it.
+pub const SHADOW_GUTTER: u32 = 16;
+
 /// Side of the square image slot, logical px.
 const IMAGE_SIZE: f32 = 48.0;
 
@@ -64,8 +71,19 @@ impl NotifyApp {
         std::mem::take(&mut self.pending)
     }
 
+    /// Stock card anatomy: a tinted `card_header` strip carries the app
+    /// name and dismiss button, `card_content` the message (optional
+    /// image beside summary + body), `card_footer` the action buttons.
+    /// Only the strip's vertical padding is tightened from the shadcn
+    /// recipe — full `SPACE_6` reads as a banner, not a chrome strip.
     fn card(&self, n: &Notification, palette: &Palette) -> El {
-        let header = row([
+        // Critical urgency tints the strip destructive — a 1px
+        // destructive stroke alone is invisible on the dark theme.
+        let strip_fill = match n.urgency {
+            Urgency::Critical => tokens::DESTRUCTIVE,
+            _ => tokens::MUTED,
+        };
+        let strip = card_header([row([
             text(n.app_name.clone()).caption().muted(),
             spacer(),
             icon_button(IconName::X)
@@ -73,12 +91,20 @@ impl NotifyApp {
                 .small()
                 .key(format!("n-{}-close", n.id)),
         ])
-        .fill_width()
-        .align(Align::Center);
+        .align(Align::Center)])
+        .fill(strip_fill)
+        .py(tokens::SPACE_2);
 
-        let mut content: Vec<El> = Vec::new();
+        let mut lines: Vec<El> = Vec::new();
+        if !n.summary.is_empty() {
+            lines.push(card_title(n.summary.clone()).wrap_text().max_lines(2));
+        }
+        if !n.body.is_empty() {
+            lines.push(card_description(n.body.clone()).max_lines(6));
+        }
+        let mut message: Vec<El> = Vec::new();
         if let Some(img) = &n.image {
-            content.push(
+            message.push(
                 image(img.clone())
                     .image_fit(ImageFit::Cover)
                     .width(Size::Fixed(IMAGE_SIZE))
@@ -86,63 +112,35 @@ impl NotifyApp {
                     .radius(6.0),
             );
         }
-        let mut lines: Vec<El> = Vec::new();
-        if !n.summary.is_empty() {
-            lines.push(
-                text(n.summary.clone())
-                    .label()
-                    .semibold()
-                    .wrap_text()
-                    .max_lines(2),
-            );
-        }
-        if !n.body.is_empty() {
-            lines.push(
-                text(n.body.clone())
-                    .caption()
-                    .muted()
-                    .wrap_text()
-                    .max_lines(6),
-            );
-        }
-        content.push(column(lines).gap(tokens::SPACE_1).fill_width());
+        message.push(column(lines).gap(tokens::SPACE_2).fill_width());
 
-        let mut parts = vec![
-            header,
-            row(content).gap(tokens::SPACE_3).align(Align::Start).fill_width(),
-        ];
+        // The filled strip supplies its own separation, so the content
+        // takes a real top padding instead of the recipe's `pt-0`.
+        let content = card_content([row(message)
+            .gap(tokens::SPACE_3)
+            .align(Align::Start)])
+        .pt(tokens::SPACE_4);
+
+        let mut slots = vec![strip, content];
         if !n.actions.is_empty() {
-            parts.push(
-                row(n
-                    .actions
-                    .iter()
-                    .map(|a| {
-                        button(a.label.clone())
-                            .secondary()
-                            .small()
-                            .key(format!("n-{}-act-{}", n.id, a.key))
-                    })
-                    .collect::<Vec<_>>())
-                .gap(tokens::SPACE_2),
-            );
+            slots.push(card_footer([row(n
+                .actions
+                .iter()
+                .map(|a| {
+                    button(a.label.clone())
+                        .secondary()
+                        .small()
+                        .key(format!("n-{}-act-{}", n.id, a.key))
+                })
+                .collect::<Vec<_>>())
+            .gap(tokens::SPACE_2)]));
         }
 
-        let stroke = match n.urgency {
-            Urgency::Critical => palette.destructive,
-            _ => palette.border.with_alpha(0.6),
-        };
-        let card = column(parts)
-            .key(format!("n-{}", n.id))
-            .gap(tokens::SPACE_2)
-            .padding(Sides::all(tokens::SPACE_3))
-            .fill_width()
-            .fill(palette.background.with_alpha(0.92))
-            .stroke(stroke)
-            .radius(12.0);
-        if n.urgency == Urgency::Low {
-            card.opacity(0.85)
-        } else {
-            card
+        let card = card(slots).key(format!("n-{}", n.id));
+        match n.urgency {
+            Urgency::Critical => card.stroke(palette.destructive),
+            Urgency::Low => card.opacity(0.85),
+            Urgency::Normal => card,
         }
     }
 }
@@ -170,12 +168,14 @@ impl App for NotifyApp {
             cards.reverse();
         }
 
-        // The wl_surface is sized to exactly fit this column (the host
-        // measures it at the configured width before committing), so
+        // The wl_surface is sized to exactly fit this keyed column (the
+        // host measures it at the surface width before committing), so
         // the wrapper contributes nothing but the root viewport rect.
+        // The gutter padding keeps card shadows inside the surface.
         column([column(cards)
             .key(STACK_KEY)
             .gap(self.gap as f32)
+            .padding(Sides::all(SHADOW_GUTTER as f32))
             .fill_width()])
         .fill_width()
     }
