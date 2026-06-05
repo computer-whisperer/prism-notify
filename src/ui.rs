@@ -10,7 +10,7 @@ use std::rc::Rc;
 
 use damascene_core::prelude::*;
 
-use crate::config::Corner;
+use crate::config::{Config, Corner};
 use crate::notification::{Notification, Urgency};
 
 /// Key of the stack column, read back by the host's measuring pass.
@@ -43,17 +43,22 @@ pub struct NotifyApp {
     corner: Corner,
     gap: u32,
     max_visible: usize,
+    /// Card fill translucency from config (1.0 = opaque). The strip
+    /// composites over the already-translucent card fill, so its
+    /// region reads a touch more opaque — which suits a chrome strip.
+    opacity: f32,
     pending: Vec<UserAction>,
 }
 
 impl NotifyApp {
-    pub fn new(corner: Corner, gap: u32, max_visible: usize) -> Self {
+    pub fn new(config: &Config) -> Self {
         Self {
             items: Vec::new(),
             total: 0,
-            corner,
-            gap,
-            max_visible,
+            corner: config.corner,
+            gap: config.gap,
+            max_visible: config.max_visible,
+            opacity: config.opacity,
             pending: Vec::new(),
         }
     }
@@ -82,7 +87,8 @@ impl NotifyApp {
         let strip_fill = match n.urgency {
             Urgency::Critical => tokens::DESTRUCTIVE,
             _ => tokens::MUTED,
-        };
+        }
+        .with_alpha(self.opacity);
         let strip = card_header([row([
             text(n.app_name.clone()).caption().muted(),
             spacer(),
@@ -136,7 +142,9 @@ impl NotifyApp {
             .gap(tokens::SPACE_2)]));
         }
 
-        let card = card(slots).key(format!("n-{}", n.id));
+        let card = card(slots)
+            .key(format!("n-{}", n.id))
+            .fill(tokens::CARD.with_alpha(self.opacity));
         match n.urgency {
             Urgency::Critical => card.stroke(palette.destructive),
             Urgency::Low => card.opacity(0.85),

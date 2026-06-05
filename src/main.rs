@@ -77,7 +77,7 @@ fn main() -> Result<()> {
     let (dbus_send, dbus_recv) = calloop_channel::channel();
     let dbus = Dbus::serve(dbus_send)?;
 
-    let app = NotifyApp::new(config.corner, config.gap, config.max_visible);
+    let app = NotifyApp::new(&config);
     let mut daemon = Daemon {
         registry_state: RegistryState::new(&globals),
         output_state: OutputState::new(&globals, &qh),
@@ -434,7 +434,7 @@ impl Daemon {
         };
         tracing::info!("config reloaded");
         self.config = new;
-        self.app = NotifyApp::new(self.config.corner, self.config.gap, self.config.max_visible);
+        self.app = NotifyApp::new(&self.config);
         // Geometry, anchor, even the output may have changed — drop the
         // surface; the next sync recreates it from scratch.
         self.surface = None;

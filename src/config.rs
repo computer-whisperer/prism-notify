@@ -15,6 +15,7 @@
 //! margin 8              // gap to the screen edges, logical pixels
 //! gap 8                 // gap between stacked cards, logical pixels
 //! max-visible 8         // overflow collapses into a "+N more" line
+//! opacity 0.8           // card translucency, 0.0..=1.0 (1.0 = opaque)
 //!
 //! // Auto-expiry for notifications that don't set their own timeout,
 //! // milliseconds; 0 = never expire. Critical notifications never
@@ -46,6 +47,10 @@ pub struct Config {
     /// Cards shown at once; the rest collapse into a "+N more" line.
     #[knuffel(child, unwrap(argument), default = 8)]
     pub max_visible: usize,
+    /// Card fill translucency, 0.0..=1.0 (1.0 = opaque). Matches
+    /// prism-bar's 0.80 panel by default.
+    #[knuffel(child, unwrap(argument), default = 0.8)]
+    pub opacity: f32,
     /// Expiry for notifications with `expire_timeout = -1` (server
     /// default), in milliseconds. 0 = never expire.
     #[knuffel(child, unwrap(argument), default = 5000)]
@@ -94,6 +99,7 @@ impl Default for Config {
             margin: 8,
             gap: 8,
             max_visible: 8,
+            opacity: 0.8,
             default_timeout: 5000,
         }
     }
@@ -136,6 +142,12 @@ impl Config {
         };
         if config.width == 0 {
             anyhow::bail!("config error: width must be positive");
+        }
+        if !(0.0..=1.0).contains(&config.opacity) {
+            anyhow::bail!(
+                "config error: opacity must be within 0.0..=1.0, got {}",
+                config.opacity
+            );
         }
         Ok(config)
     }
