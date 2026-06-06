@@ -330,7 +330,7 @@ impl Daemon {
         damascene_core::layout::layout(&mut tree, &mut self.measure_ui, viewport);
         let h = self
             .measure_ui
-            .rect_of_key(&tree, ui::STACK_KEY)
+            .rect_of_key(ui::STACK_KEY)
             .map(|r| r.h)
             .unwrap_or(0.0);
         h.ceil() as u32
@@ -622,8 +622,12 @@ impl Daemon {
     }
 
     fn dispatch_ui_events(&mut self, events: Vec<damascene_core::UiEvent>) {
+        let cx = match self.surface.as_ref().and_then(|s| s.swapchain.as_ref()) {
+            Some(sc) => damascene_core::EventCx::new().with_ui_state(sc.runner.ui_state()),
+            None => damascene_core::EventCx::new(),
+        };
         for event in events {
-            self.app.on_event(event);
+            self.app.on_event(event, &cx);
         }
         // Side effects the app requested (it can't talk D-Bus itself).
         for action in self.app.take_actions() {

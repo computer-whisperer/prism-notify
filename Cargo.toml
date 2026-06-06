@@ -23,8 +23,8 @@ wayland-backend = { version = "0.3", features = ["client_system"] }
 
 # UI toolkit. Same custom-host path as prism-bar: we own the layer
 # surface and event loop, and drive the wgpu Runner directly.
-damascene-core = { path = "../damascene/damascene.main/crates/damascene-core" }
-damascene-wgpu = { path = "../damascene/damascene.main/crates/damascene-wgpu" }
+damascene-core = "0.4.1"
+damascene-wgpu = "0.4.1"
 
 # GPU surface on the layer surface's wl_surface via raw handles.
 wgpu = "29"

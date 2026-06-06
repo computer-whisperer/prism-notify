@@ -188,7 +188,7 @@ impl App for NotifyApp {
         .fill_width()
     }
 
-    fn on_event(&mut self, event: UiEvent) {
+    fn on_event(&mut self, event: UiEvent, _cx: &EventCx) {
         for n in &self.items {
             if event.is_click_or_activate(&format!("n-{}-close", n.id)) {
                 self.pending.push(UserAction::Dismiss(n.id));
