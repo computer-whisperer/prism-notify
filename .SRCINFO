@@ -1,7 +1,7 @@
 pkgbase = prism-notify
 	pkgdesc = Notification daemon for the prism compositor — damascene-rendered, layer-shell native
 	pkgver = 0.1.0
-	pkgrel = 1
+	pkgrel = 2
 	url = https://github.com/computer-whisperer/prism-notify
 	arch = x86_64
 	license = MIT OR Apache-2.0
@@ -10,6 +10,7 @@ pkgbase = prism-notify
 	depends = glibc
 	depends = vulkan-icd-loader
 	depends = wayland
+	provides = notification-daemon
 	source = prism-notify-0.1.0.tar.gz::https://github.com/computer-whisperer/prism-notify/archive/refs/tags/v0.1.0.tar.gz
 	sha256sums = ce67bc248de46545177eb83b3edd48b9d86fba4b34d81f3db0b0a07a665d7c49
 
