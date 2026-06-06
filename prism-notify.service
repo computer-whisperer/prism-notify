@@ -1,0 +1,9 @@
+# D-Bus session-service activation file (not a systemd unit).
+# Installed to /usr/share/dbus-1/services/. When a client calls
+# org.freedesktop.Notifications and no daemon owns the name, the
+# session bus spawns prism-notify on demand. Requires WAYLAND_DISPLAY
+# in the bus activation environment (the compositor session should run
+# `dbus-update-activation-environment WAYLAND_DISPLAY` at startup).
+[D-BUS Service]
+Name=org.freedesktop.Notifications
+Exec=/usr/bin/prism-notify
