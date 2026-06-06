@@ -11,6 +11,6 @@ pkgbase = prism-notify
 	depends = vulkan-icd-loader
 	depends = wayland
 	source = prism-notify-0.1.0.tar.gz::https://github.com/computer-whisperer/prism-notify/archive/refs/tags/v0.1.0.tar.gz
-	sha256sums = SKIP
+	sha256sums = ce67bc248de46545177eb83b3edd48b9d86fba4b34d81f3db0b0a07a665d7c49
 
 pkgname = prism-notify

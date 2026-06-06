@@ -18,8 +18,7 @@ depends=(
 )
 makedepends=('cargo')
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
-# TODO: pin to the real tarball hash with the first tagged release.
-sha256sums=('SKIP')
+sha256sums=('ce67bc248de46545177eb83b3edd48b9d86fba4b34d81f3db0b0a07a665d7c49')
 
 prepare() {
     cd "$pkgname-$pkgver"
