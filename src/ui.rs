@@ -122,10 +122,8 @@ impl NotifyApp {
 
         // The filled strip supplies its own separation, so the content
         // takes a real top padding instead of the recipe's `pt-0`.
-        let content = card_content([row(message)
-            .gap(tokens::SPACE_3)
-            .align(Align::Start)])
-        .pt(tokens::SPACE_4);
+        let content = card_content([row(message).gap(tokens::SPACE_3).align(Align::Start)])
+            .pt(tokens::SPACE_4);
 
         let mut slots = vec![strip, content];
         if !n.actions.is_empty() {
@@ -157,11 +155,7 @@ impl App for NotifyApp {
     fn build(&self, cx: &BuildCx) -> El {
         let palette = cx.palette();
 
-        let mut cards: Vec<El> = self
-            .items
-            .iter()
-            .map(|n| self.card(n, palette))
-            .collect();
+        let mut cards: Vec<El> = self.items.iter().map(|n| self.card(n, palette)).collect();
         let hidden = self.total.saturating_sub(self.items.len());
         if hidden > 0 {
             cards.push(

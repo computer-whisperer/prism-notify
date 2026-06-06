@@ -474,8 +474,12 @@ impl Daemon {
                 };
                 if let Some(msaa) = sc.msaa.as_mut() {
                     if !msaa.matches(extent) {
-                        *msaa =
-                            MsaaTarget::new(&gpu.device, sc.config.format, extent, msaa.sample_count);
+                        *msaa = MsaaTarget::new(
+                            &gpu.device,
+                            sc.config.format,
+                            extent,
+                            msaa.sample_count,
+                        );
                     }
                 }
             }
@@ -577,7 +581,8 @@ impl Daemon {
             .prepare(&gpu.device, &gpu.queue, &mut tree, viewport, scale);
 
         let frame = match s.wgpu_surface.get_current_texture() {
-            wgpu::CurrentSurfaceTexture::Success(t) | wgpu::CurrentSurfaceTexture::Suboptimal(t) => t,
+            wgpu::CurrentSurfaceTexture::Success(t)
+            | wgpu::CurrentSurfaceTexture::Suboptimal(t) => t,
             wgpu::CurrentSurfaceTexture::Lost | wgpu::CurrentSurfaceTexture::Outdated => {
                 s.wgpu_surface.configure(&gpu.device, &sc.config);
                 s.dirty = true; // try again next loop turn

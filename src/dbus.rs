@@ -163,9 +163,7 @@ impl Dbus {
         // hands the name to someone else anyway, tell the main loop to
         // exit instead of serving nothing.
         let proxy = zbus::blocking::fdo::DBusProxy::new(&conn).context("DBus proxy")?;
-        let mut name_lost = proxy
-            .receive_name_lost()
-            .context("subscribe to NameLost")?;
+        let mut name_lost = proxy.receive_name_lost().context("subscribe to NameLost")?;
         std::thread::Builder::new()
             .name("name-lost-watch".into())
             .spawn(move || {
@@ -205,7 +203,10 @@ impl Dbus {
 }
 
 fn urgency_hint(hints: &HashMap<String, OwnedValue>) -> Urgency {
-    match hints.get("urgency").and_then(|v| v.downcast_ref::<u8>().ok()) {
+    match hints
+        .get("urgency")
+        .and_then(|v| v.downcast_ref::<u8>().ok())
+    {
         Some(0) => Urgency::Low,
         Some(2) => Urgency::Critical,
         _ => Urgency::Normal,
